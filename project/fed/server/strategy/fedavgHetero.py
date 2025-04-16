@@ -267,7 +267,6 @@ class FedAvgHetero(Strategy):
             # Custom fit config function provided
             config = self.on_fit_config_fn(server_round)
 
-        # to-do: in flash, the mask must be applied to the parameters
         fit_ins = FitIns(parameters, config)
 
         # Sample clients
@@ -275,9 +274,7 @@ class FedAvgHetero(Strategy):
             client_manager.num_available()
         )
 
-        # to-do: - the clien must be sampled from different groups for differetn density
         cluster_clients: list = [[] for _ in range(3)]
-        # remaining_clients = self.num_clients % 4
         # Sample clients for each cluster
         for idx, (lower_bound, upper_bound) in enumerate(self.bounds):
             num_clients = int((upper_bound - lower_bound) / 10)
@@ -308,7 +305,6 @@ class FedAvgHetero(Strategy):
             # Custom evaluation config function provided
             config = self.on_evaluate_config_fn(server_round)
 
-        # to-do: in flash, the mask must be applied to the parameters
         evaluate_ins = EvaluateIns(parameters, config)
 
         # Sample clients
@@ -316,9 +312,7 @@ class FedAvgHetero(Strategy):
             client_manager.num_available()
         )
 
-        # to-do: - the clien must be sampled from different groups for differetn density
         cluster_clients: list = [[] for _ in range(3)]
-        # remaining_clients = self.num_clients % 4
         # Sample clients for each cluster
         for idx, (lower_bound, upper_bound) in enumerate(self.bounds):
             num_clients = int((upper_bound - lower_bound) / 10)
@@ -355,8 +349,6 @@ class FedAvgHetero(Strategy):
         ]
         parameters_aggregated = ndarrays_to_parameters(aggregate(weights_results))
 
-        # to-do: - in flash the masks for the models must be created here, 1st round
-
         # Aggregate custom metrics if aggregation fn was provided
         metrics_aggregated = {}
         if self.fit_metrics_aggregation_fn:
@@ -385,28 +377,6 @@ class FedAvgHetero(Strategy):
             (evaluate_res.num_examples, evaluate_res.loss)
             for _, evaluate_res in results
         ])
-
-        # to-do: - the accuracy for the different models density must be aggregated separately
-
-        # Aggregate custom metrics if aggregation fn was provided
-        # metrics_aggregated = {}
-        # if self.evaluate_metrics_aggregation_fn:
-        #     eval_metrics = [(res.num_examples, res.metrics) for _, res in results]
-        #     metrics_aggregated = self.evaluate_metrics_aggregation_fn(eval_metrics)
-
-        #     cluster_bounds = [(0, 40), (40, 70), (70, 100)]
-        #     clusters_accuracy = [[] for _ in range(len(cluster_bounds))]
-
-        #     for _, metrics in eval_metrics:
-        #         for idx, cluster in enumerate(cluster_bounds):
-        #             if int(metrics["cid"]) in range(cluster[0], cluster[1]):
-        #                 clusters_accuracy[idx].append(metrics["test_accuracy"])
-
-        #     for idx, cluster_accuracy in enumerate(clusters_accuracy):
-        #         if cluster_accuracy:
-        #             metrics_aggregated[f"cluster_{idx}_accuracy"] = sum(cluster_accuracy) / len(cluster_accuracy)
-        # elif server_round == 1:  # Only log this warning once
-        #     log(WARNING, "No evaluate_metrics_aggregation_fn provided")
 
         # (CLASSIC) Aggregate custom metrics if aggregation fn was provided
         metrics_aggregated = {}

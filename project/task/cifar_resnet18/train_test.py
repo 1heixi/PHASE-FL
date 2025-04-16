@@ -117,6 +117,8 @@ def train(  # pylint: disable=too-many-arguments
             loss.backward()
             optimizer.step()
 
+    torch.cuda.empty_cache()
+
     return len(cast(Sized, trainloader.dataset)), {
         "train_loss": final_epoch_per_sample_loss / len(
             cast(Sized, trainloader.dataset)
@@ -239,12 +241,10 @@ def get_fixed_train_and_prune(
             for i, bound in enumerate(bounds):
                 if int(_config["cid"]) >= bound[0] and int(_config["cid"]) < bound[1]:
                     sparsity = sparsities[i]
-                    # print(f"Client {_config['cid']}, amount: {sparsity}")
                     break
 
             # Check for existing mask at the specified sparsity level
             mask_path = _working_dir / "masks" / f"mask_sparsity_{sparsity:.2f}.pkl"
-            # print(f"mask_path: {mask_path}")
             if sparsity != 0 and mask_path.exists():
                 log(
                     logging.INFO,
@@ -342,15 +342,11 @@ def get_train_and_prune(
         # bounds = [(0, 40), (40, 70), (70, 100)]
         # sparsities = [ ]
 
-        # print(f"Client {_config}")
-
         # assign the sparsity based on the cid
         if int(_config["curr_round"]) > 1 and len(sparsities) > 1:
             for i, bound in enumerate(bounds):
                 if int(_config["cid"]) >= bound[0] and int(_config["cid"]) < bound[1]:
                     sparsity = sparsities[i]
-                    # print cid and amount
-                    # print(f"Client {_config['cid']}, amount: {sparsity}")
                     break
             # sparsify the model
             if sparsity != 0:
@@ -403,19 +399,6 @@ def get_train_and_prune(
             )
             for module, name, _ in parameters_to_prune:
                 prune.remove(module, name)
-
-            # Prevent layer collapse
-            # generic_set_parameters(net, generic_get_parameters(net))
-            # sparsity_after_pruning = get_nonzeros(net)
-            # net = prevent_layer_collapse(dense_model, net, 1-sparsity)
-            # sparsity_after_prevent = get_nonzeros(net)
-            # if sparsity_after_prevent != sparsity_after_pruning:
-            #     log(
-            #         logging.INFO,
-            #         f"Pruned model to sparsity {sparsity_after_pruning:.2f}, "
-            #         f"prevented layer collapse to sparsity"
-            #         f"{sparsity_after_prevent:.2f}",
-            #     )
 
         torch.cuda.empty_cache()
         metrics[1]["sparsity"] = sparsity
@@ -473,11 +456,7 @@ def test(
     config: TestConfig = TestConfig(**_config)
     del _config
 
-    # print("EVAL conf: ", config)
-
     # sparsities = [ 0.0, 0.9, 0.95, 0.99, 0.995, 0.999 ]
-    # sparsities = [ ]
-    # sparsities = [ 0.0 ]
 
     sparse_accuracy = {}
     sparse_loss = {}
@@ -488,7 +467,7 @@ def test(
     # SPECTRAL EXPONENT
     # <---
     avg_exponent = set_spectral_global_exponent(net, False)
-    log(logging.INFO, f"[test] Average spectral exponent: {avg_exponent}")
+    # log(logging.INFO, f"[test] Average spectral exponent: {avg_exponent}")
     # --->
 
     # get the global model
@@ -517,7 +496,6 @@ def test(
         cast(Sized, testloader.dataset)
     )
     sparse_loss["loss"] = per_sample_loss / len(cast(Sized, testloader.dataset))
-    # print(f"Sparsity: 0, Accuracy: {correct / len(cast(Sized, testloader.dataset))}")
 
     # Evaluate the sparse models
     for sparsity in sparsities:
@@ -571,40 +549,12 @@ def test(
             cast(Sized, testloader.dataset)
         )
 
-    # criterion = nn.CrossEntropyLoss()
-    # correct, per_sample_loss = 0, 0.0
-
-    # with torch.no_grad():
-    #     for images, labels in testloader:
-    #         images, labels = (
-    #             images.to(
-    #                 config.device,
-    #             ),
-    #             labels.to(config.device),
-    #         )
-    #         outputs = net(images)
-    #         per_sample_loss += criterion(
-    #             outputs,
-    #             labels,
-    #         ).item()
-    #         _, predicted = torch.max(outputs.data, 1)
-    #         correct += (predicted == labels).sum().item()
-
-    torch.cuda.empty_cache()
-
-    # print("sparse_accuracy", sparse_accuracy)
-
     sparse_accuracy["exponent"] = avg_exponent
-    # print(f"Average spectral exponent: {avg_exponent}")
 
     return (
-        # per_sample_loss / len(cast(Sized, testloader.dataset)),
-        sparse_loss["loss"],  # dense model loss
+        sparse_loss["loss"],
         len(cast(Sized, testloader.dataset)),
         sparse_accuracy,
-        # {
-        #     "test_accuracy": float(correct) / len(cast(Sized, testloader.dataset)),
-        # },
     )
 
 
@@ -620,8 +570,6 @@ def test_hetero_flash(
 
     config: TestConfig = TestConfig(**_config)
     del _config
-
-    # print("EVAL conf: ", config)
 
     sparse_accuracy = {}
     sparse_loss = {}
@@ -645,7 +593,6 @@ def test_hetero_flash(
         cast(Sized, testloader.dataset)
     )
     sparse_loss["loss"] = per_sample_loss / len(cast(Sized, testloader.dataset))
-    # print(f"Sparsity: 0, Accuracy: {correct / len(cast(Sized, testloader.dataset))}")
 
     # Evaluate with different sparsity masks
     for sparsity in sparsities:
@@ -656,7 +603,7 @@ def test_hetero_flash(
         mask_path = _working_dir / "masks" / f"mask_sparsity_{sparsity:.2f}.pkl"
 
         if not mask_path.exists():
-            # print(f"Warning: Mask file not found for sparsity {sparsity}")
+            log(logging.WARNING, f"Mask file not found for sparsity {sparsity}")
             continue
 
         try:
@@ -695,16 +642,14 @@ def test_hetero_flash(
                 cast(Sized, testloader.dataset)
             )
 
-            # print(f"Sparsity: {sparsity}, Accuracy: {accuracy}")
-
-        except Exception:
-            # print(f"Error evaluating sparsity {sparsity}: {e!s}")
+        except Exception as e:
+            log(logging.ERROR, f"Error evaluating sparsity {sparsity}: {e!s}")
             continue
 
         finally:
             torch.cuda.empty_cache()
 
-    # print("sparse_accuracy", sparse_accuracy)
+    # log(logging.INFO, "sparse_accuracy", sparse_accuracy)
 
     return (
         sparse_loss["loss"],  # dense model loss

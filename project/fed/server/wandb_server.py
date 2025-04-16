@@ -176,7 +176,7 @@ class WandbServer(Server):
                         server_round=current_round,
                         loss=loss_fed,
                     )
-                    # print(evaluate_metrics_fed["noalpha_test_accuracy"])
+
                     history.add_metrics_distributed(
                         server_round=current_round,
                         metrics=evaluate_metrics_fed,

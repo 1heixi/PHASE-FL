@@ -1,4 +1,4 @@
-"""MNIST dataset utilities for federated learning."""
+"""Speech dataset utilities for federated learning."""
 
 from pathlib import Path
 
@@ -65,11 +65,8 @@ def get_dataloader_generators(
 
         client_dir = partition_dir / f"client_{cid}"
         if not test:
-            # if True:
-            # print("Opening ", client_dir / "train.pt")
             dataset = torch.load(client_dir / "train.pt")
         else:
-            # print("Opening ", client_dir / "test.pt")
             dataset = torch.load(client_dir / "test.pt")
 
         dataset_loader = DataLoader(
@@ -102,13 +99,6 @@ def get_dataloader_generators(
             **_config,
         )
         del _config
-
-        # if not test:
-        #     return DataLoader(
-        #         torch.load(partition_dir / "train.pt"),
-        #         batch_size=config.batch_size,
-        #         shuffle=not test,
-        #     )
 
         dataset = torch.load(partition_dir / "test.pt")
         return DataLoader(

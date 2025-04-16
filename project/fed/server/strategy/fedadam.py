@@ -142,8 +142,6 @@ class FedAdam(FedOpt):
     ) -> tuple[Optional[Parameters], dict[str, Scalar]]:
         """Aggregate fit results using weighted average."""
 
-        print("FedAdam aggregate_fit")
-
         fedavg_parameters_aggregated, metrics_aggregated = super().aggregate_fit(
             server_round=server_round, results=results, failures=failures
         )

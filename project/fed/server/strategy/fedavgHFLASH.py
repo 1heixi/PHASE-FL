@@ -267,7 +267,6 @@ class FedAvgHFLASH(Strategy):
             # Custom fit config function provided
             config = self.on_fit_config_fn(server_round)
 
-        # to-do: in flash, the mask must be applied to the parameters
         fit_ins = FitIns(parameters, config)
 
         # Sample clients
@@ -275,9 +274,7 @@ class FedAvgHFLASH(Strategy):
             client_manager.num_available()
         )
 
-        # to-do: - the clien must be sampled from different groups for differetn density
         cluster_clients: list = [[] for _ in range(3)]
-        # remaining_clients = self.num_clients % 4
         # Sample clients for each cluster
         for idx, (lower_bound, upper_bound) in enumerate(self.bounds):
             num_clients = int((upper_bound - lower_bound) / 10)
@@ -308,7 +305,6 @@ class FedAvgHFLASH(Strategy):
             # Custom evaluation config function provided
             config = self.on_evaluate_config_fn(server_round)
 
-        # to-do: in flash, the mask must be applied to the parameters
         evaluate_ins = EvaluateIns(parameters, config)
 
         # Sample clients
@@ -316,9 +312,7 @@ class FedAvgHFLASH(Strategy):
             client_manager.num_available()
         )
 
-        # to-do: - the clien must be sampled from different groups for differetn density
         cluster_clients: list = [[] for _ in range(3)]
-        # remaining_clients = self.num_clients % 4
         # Sample clients for each cluster
         for idx, (lower_bound, upper_bound) in enumerate(self.bounds):
             num_clients = int((upper_bound - lower_bound) / 10)

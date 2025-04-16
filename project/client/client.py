@@ -54,22 +54,6 @@ class ClientConfig(BaseModel):
         arbitrary_types_allowed = True
 
 
-# old
-# FROM ZEROFL
-# def update_learing_rate(
-#     inittial_value: float,
-#     final_value: float,
-#     curr_round: int,
-#     tot_rounds: int = 700,
-# ) -> float:
-#     """Update the learning rate using the exponential decay."""
-#     ratio = final_value / inittial_value
-#     log_ratio = math.log(ratio)
-#     exponential_term = (curr_round / tot_rounds) * log_ratio
-#     eta_t = inittial_value * math.exp(exponential_term)
-#     return eta_t
-
-
 class LRScheduler:
     """Learning rate scheduler with warmup and exponential decay."""
 
@@ -213,12 +197,6 @@ class Client(fl.client.NumPyClient):
             config.dataloader_config,
         )
 
-        # config.run_config["learning_rate"] = update_learing_rate(
-        #     inittial_value=config.run_config["learning_rate"],
-        #     final_value=config.run_config["final_learning_rate"],
-        #     curr_round=config.run_config["curr_round"],
-        #     tot_rounds=config.run_config["tot_rounds"],
-        # )
         # Create the scheduler
         scheduler = LRScheduler(
             initial_lr=config.run_config["learning_rate"],

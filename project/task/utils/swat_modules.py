@@ -1,5 +1,7 @@
-"""
-TODO:
+"""SWAT custom modules for federated learning.
+
+This module contains custom PyTorch modules and functions for implementing SWAT models
+in a federated learning setting.
 """
 
 from copy import deepcopy
@@ -74,7 +76,6 @@ def convolution_backward(
     # Compute gradient w.r.t. bias (works for every Conv2d shape)
     if bias is not None and ctx.needs_input_grad[2]:
         bias_grad = grad_output.sum(dim=(0, 2, 3))
-        # print(f"[forward.conv] bias_grad: {print_nonzeros_tensor(bias_grad)} ")
 
     return (
         input_grad,

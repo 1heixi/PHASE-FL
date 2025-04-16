@@ -1,5 +1,7 @@
-"""
-TODO:
+"""SparsyFed custom modules for federated learning.
+
+This module contains custom PyTorch modules and functions for implementing SparsyFed
+models in a federated learning setting.
 """
 
 from copy import deepcopy

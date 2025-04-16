@@ -273,7 +273,6 @@ def get_clients_window_range(
     """
     start = ((current_round // window_training_rounds) * window_size) % num_clients
     end = start + window_size + overlap
-    # print(f"RANGE: start: {start}, end: {end}")
     return int(start), int(end)
 
 

@@ -172,7 +172,7 @@ def replace_layer_with_zero_fl(
                 period=1,
             )
             setattr(module, attr_str, new_conv)
-            # print(f"Replaced {type(target_attr)} with SWATConv2D in {name}")
+
         if type(target_attr) == nn.Linear:
             if first_layer:
                 first_layer = False
@@ -185,7 +185,6 @@ def replace_layer_with_zero_fl(
                 sparsity=sparsity,
             )
             setattr(module, attr_str, new_conv)
-            # print(f"Replaced {type(target_attr)} with SWATLinear in {name}")
 
     for model, immediate_child_module in module.named_children():
         replace_layer_with_zero_fl(

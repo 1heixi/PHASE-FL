@@ -1,5 +1,7 @@
 """Spectral norm handler for computing the spectral normalization of weight tensors."""
 
+from logging import log
+import logging
 import torch
 import torch.nn.functional as F
 
@@ -55,17 +57,17 @@ class SpectralNormHandler:
             # exponent = torch.clamp(exponent, max=10)  # Prevent overflow
             # exponent = 1 + weight_normalized_avg
 
-            # print(f"Weight normalized average: {weight_normalized_avg}")
-
             # add a check if exponent is nan
             if torch.isnan(weight_normalized_avg):
-                # print(f"Exponent is nan. Number of non zero values: {torch.sum(weight_normalized != 0)}")
+                log(
+                    logging.INFO,
+                    "Exponent is nan. Number of non zero values:"
+                    f" {torch.sum(weight_normalized != 0)}",
+                )
                 exponent = 1.0
             else:
                 weight_normalized_avg = round(weight_normalized_avg.item(), 8)
                 exponent = 1.0 + weight_normalized_avg
-
-            print(f"Exponent: {exponent}")
 
             # Save the exponent in cache
             self.cached_exponents[cache_key] = exponent
