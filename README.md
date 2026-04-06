@@ -1,161 +1,188 @@
-# SparsyFed: Sparse Adaptive Federated Training
+# PHASE-FL
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+**PHASE-FL** (**P**rogressive **H**igh-sparsity **A**ggregation and **S**tructure-stabilized **E**dge **F**ederated **L**earning) is a research codebase for ultra-high-sparsity federated dynamic sparse training.
 
-This repository contains the official implementation of **"SparsyFed: Sparse Adaptive Federated Training"** ([arXiv:2504.05153](https://arxiv.org/abs/2504.05153)).
+This repository is built on top of the SparsyFed codebase and is actively adapted for studying federated learning under **extreme sparsity regimes** (e.g., 98% / 99%), with a focus on training dynamics, server-side aggregation stability, and local structural stability.
 
-## Abstract
-Sparse training is often adopted in cross-device federated learning (FL) environments where constrained devices collaboratively train a machine learning model on private data by exchanging pseudo-gradients across heterogeneous networks. Although sparse training methods can reduce communication overhead and computational burden in FL, they are often not used in practice for the following key reasons: (1) data heterogeneity makes it harder for clients to reach consensus on sparse models compared to dense ones, requiring longer training; (2) methods for obtaining sparse masks lack adaptivity to accommodate very heterogeneous data distributions, crucial in cross-device FL; and (3) additional hyperparameters are required, which are notably challenging to tune in FL. This paper presents SparsyFed, a practical federated sparse training method that critically addresses the problems above. Previous works have only solved one or two of these challenges at the expense of introducing new trade-offs, such as clients' consensus on masks versus sparsity pattern adaptivity. We show that SparsyFed simultaneously (1) can produce 95% sparse models, with negligible degradation in accuracy, while only needing a single hyperparameter, (2) achieves a per-round weight regrowth 200 times smaller than previous methods, and (3) allows the sparse masks to adapt to highly heterogeneous data distributions and outperform all baselines under such conditions.
+## Overview
 
-## Pipeline Overview
+In ultra-high-sparsity federated training, performance is not determined only by the final sparsity target. In practice, three coupled factors matter:
 
-![SparsyFed Pipeline](assets/sparsyfed_pipeline.svg)
+1. **How the model enters the high-sparsity regime**
+2. **How prunable parameters are aggregated on the server**
+3. **How unstable boundary connections evolve locally during pruning**
 
-*SparsyFed pipeline: (1) Server broadcasts the global model $\omega_t$. (2) Client $i$ re-parameterizes local weights. (3) Executes a forward pass on batch $\mathcal{B}$. (4a) Computes layer-wise sparsity $s_t$. (4b) Prunes activations using $s_t$ and stores them. (5) Computes gradients. (6) Applies gradients. (7) Computes model updates and applies `Top-K` pruning. (8) Sends sparse updates $\Delta \tilde{\omega}_{i}^{t}$ back to the server. (9) Applies server optimizer to obtain the global model. Steps (2-6) repeat until convergence.*
+PHASE-FL is designed around these three aspects.
 
+### Current framework
 
+The current framework consists of three coordinated components:
 
+- **Dynamic Sparsity Scheduling**  
+  Gradually moves the model from a lower initial sparsity to the target ultra-high sparsity, instead of enforcing extreme sparsity from the beginning.
 
-## Table of Contents
-- [SparsyFed: Sparse Adaptive Federated Training](#sparsyfed-sparse-adaptive-federated-training)
-  - [Abstract](#abstract)
-  - [Pipeline Overview](#pipeline-overview)
-  - [Setup](#setup)
-  - [Running Experiments](#running-experiments)
-    - [Quick start](#quick-start)
-    - [Dataset Preparation](#dataset-preparation)
-    - [Running SparsyFed](#running-sparsyfed)
-    - [Continuing Training](#continuing-training)
-  - [Implemented Tasks](#implemented-tasks)
-  - [Project Structure](#project-structure)
-  - [Citation](#citation)
-  - [License](#license)
+- **Prunable-only Support-aware Aggregation**  
+  Applies server-side support-aware soft aggregation only on prunable tensors, while leaving non-prunable tensors unchanged.
 
+- **Boundary-band Hysteresis Pruning**  
+  Stabilizes local pruning dynamics near the global Top-K threshold by reducing meaningless flip-flop behavior of boundary connections.
 
-## Setup
+## Project status
 
-The basic setup has been simplified to a single `setup.sh` script using [Poetry](https://python-poetry.org/), [pyenv](https://github.com/pyenv/pyenv), and [pre-commit](https://pre-commit.com/). It requires only minimal user input regarding the installation locations of `pyenv` and `poetry`, and will install the specified Python version. All dependencies are placed in the local `.venv` directory.
+This repository is an **active research codebase**, not a polished production framework.
 
+Important notes:
+
+- The code reflects the **current real experimental mainline**, not every previously discussed branch.
+- Some ideas explored during development were discarded and are **not part of the final intended method**.
+- Formal claims, final numbers, and paper-ready conclusions should be taken from experimental logs and the paper draft, not from this README alone.
+
+## Codebase structure
+
+The most important files in the current mainline are:
+
+```text
+project/
+├── main.py
+├── client/
+│   └── client.py
+├── dispatch/
+│   └── dispatch.py
+├── fed/
+│   ├── server/
+│   │   └── wandb_server.py
+│   └── utils/
+│       └── support_aware_aggregation_utils.py
+├── task/
+│   ├── cifar_resnet18/
+│   │   ├── dataset.py
+│   │   ├── dispatch.py
+│   │   ├── models.py
+│   │   └── train_test.py
+│   └── tiny_imagenet_resnet18/
+│       ├── dataset.py
+│       ├── dispatch.py
+│       ├── models.py
+│       └── train_test.py
+└── conf/
+    ├── dataset/
+    ├── fed/
+    ├── task/
+    └── *.yaml
+```
+
+### Key components
+
+- `project/main.py`  
+  Main training entry. Builds prunable flags and performs fail-fast checks for support-aware aggregation.
+
+- `project/client/client.py`  
+  Default FL client implementation. Handles parameter exchange, learning-rate scheduling, and local train/test calls.
+
+- `project/fed/server/wandb_server.py`  
+  Server wrapper with support-aware aggregation logic.
+
+- `project/fed/utils/support_aware_aggregation_utils.py`  
+  Utilities for prunable-only support-aware soft aggregation.
+
+- `project/task/cifar_resnet18/train_test.py`  
+  Main local training / pruning logic for CIFAR + ResNet18 experiments.
+
+## Current experimental path
+
+The current main experimental path is:
+
+- `task.model_and_data = CIFAR_RN18`
+- `task.train_structure = CIFAR_RN18_FIX_PRUNE`
+
+When running formal experiments, do **not** rely on YAML defaults alone. Explicitly override critical settings from the command line, especially:
+
+- `task.model_and_data`
+- `task.train_structure`
+- `task.fit_config.run_config.ggmp_lambda=0.0`
+- `task.fit_config.run_config.fedmcr_beta=0.0`
+- `task.fit_config.run_config.initial_sparsity`
+- `task.fit_config.run_config.target_sparsity`
+
+## Installation
+
+This project uses **Poetry**.
+
+### 1. Clone the repository
 
 ```bash
-./setup.sh 
+git clone https://github.com/1heixi/PHASE-FL.git
+cd PHASE-FL
 ```
 
-If `poetry`, `pyenv`, and/or the correct Python version are already installed, they will not be installed again. If they are not installed, you must provide paths to the desired installation locations. When running on a cluster, this would typically be the location of the shared file system.
-
-By default, pre-commit only runs hooks on files staged for commit. If you wish to run all pre-commit hooks without committing or pushing, use:
-
-```bash  
-poetry run pre-commit run --all-files --hook-stage push
-```
-## Running Experiments
-
-Run the task from the root `sparsyfed` directory, not from the `sparsyfed/project` directory.  
-An example of a base task would be:
+### 2. Install dependencies
 
 ```bash
-poetry run python -m project.main --config-name=cifar_resnet18
+poetry install
 ```
 
-The default task should have created a folder in `sparsyfed/outputs`. This folder contains the results of the experiment.
-
-To log your experiments to Weights & Biases (wandb), log in to wandb and then enable it via the command:
+### 3. Activate the environment
 
 ```bash
-poetry run python -m project.main --config-name=cifar_resnet18 use_wandb=true
+poetry shell
 ```
 
-### Dataset Preparation
+## Dataset preparation
 
-Before running the main experiments, you need to prepare and partition the dataset:
+The repository currently supports CIFAR and Tiny-ImageNet related experiments through configuration files under:
 
-1. Configure the dataset parameters in `conf/dataset/cifar_lda.yaml`:
-    - Set the `dataset_dir` and `partition_dir` paths.
-    - Configure `num_clients`, `val_ratio`, and `seed`.
-    - Set `num_classes` for CIFAR-10 or CIFAR-100.
-    - Adjust data heterogeneity using `lda_alpha`, and set `lda` to `true`.
+- `project/conf/dataset/`
+- `project/conf/task/`
+- `project/task/tiny_imagenet_resnet18/`
 
-2. Download and partition the dataset by running the following command from the root directory:
-    ```bash 
-        poetry run python -m project.task.cifar_resnet18.dataset_preparation
-    ```
-3. Configure model parameters in ``conf/task/cifar_resnet18.yaml`` - the default configuration is for SparsyFed
+Please make sure dataset directories and partition paths are correctly configured before running experiments.
 
-### Running SparsyFed
+## Example run
 
-To run a SparsyFed experiment with specific parameters:
+A typical CIFAR-100 / ResNet-18 / 98% sparsity experiment may look like:
 
-```bash 
-        poetry run python -m project.main --config-name=cifar_resnet18 task.model_and_data=CIFAR_SPARSYFED_RN18 task.train_structure=CIFAR_RN18_PRUNE task.alpha=1.25 task.sparsity=0.95 strategy=fedavg task.fit_config.run_config.learning_rate=0.5
-```
-This runs SparsyFed on CIFAR with:
-- 95% sparsity
-- ResNet-18 model architecture
-- FedAvg strategy
-- Learning rate of 0.5
-
-
-### Continuing Training
-Once a complete experiment has run, you can continue it for a specified number of epochs by running the following command from the root directory and setting the output directory to the previous one.
-
-- ```bash 
-    poetry run python -m project.main --config-name=cifar_resnet18 reuse_output_dir=<path_to_your_output_directory>
-    ```
-
-
-### Implemented Tasks
-The framework currently implements three tasks:
-- `cifar_resnet18`: CIFAR-10/100 dataset with a ResNet-18 model
-- `speech_resnet18`: Google Speech Commands dataset with a ResNet-18 model
-- `cub_vit`: CUB-200 dataset with a ViT model
-
-For all the tasks, we have implemented several FL methods beyond SparsyFed, including `Top-K`, `ZeroFL`, and `FLASH`.
-
-
-
-
-## Project Structure
-
-The codebase follows a modular structure:
-
-```
-project
-├── client          # Client implementation
-├── conf            # Configuration files using Hydra
-├── dispatch        # Configuration-to-task mapping
-├── fed             # Federated learning core functionality
-├── main.py         # Entry point
-├── task            # Task implementations (models, data, training)
-├── types           # Type definitions
-└── utils           # Utility functions
+```bash
+poetry run python -m project.main --config-name=cifar_resnet18 \
+  fed.num_rounds=1000 \
+  task.model_and_data=CIFAR_RN18 \
+  task.train_structure=CIFAR_RN18_FIX_PRUNE \
+  task.fit_config.run_config.initial_sparsity=0.30 \
+  task.fit_config.run_config.target_sparsity=0.98 \
+  use_wandb=true \
+  strategy=fedavg
 ```
 
-The `task` directory is the main entry point for users to modify and run experiments. It contains the following components:
-- `dataset_preparation`: Prepares and partitions datasets
-- `dataset`: Creates dataloaders for clients and server
-- `dispatch`: Maps configurations to task requirements
-- `models`: Creates models based on configurations
-- `train_test`: Implements training and testing
+## Logging and outputs
 
+Training outputs are usually written under:
 
+- `outputs/`
+- `wandb/`
+
+These directories should generally **not** be committed to Git.
+
+## Recommended Git ignore
+
+At minimum, ignore the following:
+
+```gitignore
+__pycache__/
+*.pyc
+.venv/
+venv/
+outputs/
+multirun/
+wandb/
+data/
+.DS_Store
+.vscode/
+.idea/
+```
 
 ## Citation
-If you find this code useful, please consider citing our paper:
 
-```bibtex
-@misc{guastella2025sparsyfedsparseadaptivefederated,
-      title={SparsyFed: Sparse Adaptive Federated Training}, 
-      author={Adriano Guastella and Lorenzo Sani and Alex Iacob and Alessio Mora and Paolo Bellavista and Nicholas D. Lane},
-      year={2025},
-      eprint={2504.05153},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2504.05153}, 
-}
-```
-## License
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+If you use this repository in academic work, please cite the corresponding PHASE-FL paper once available.
 
+## Acknowledgement
 
-
-
+This repository is built on top of the SparsyFed codebase and has been substantially modified for research on ultra-high-sparsity federated dynamic sparse training.
