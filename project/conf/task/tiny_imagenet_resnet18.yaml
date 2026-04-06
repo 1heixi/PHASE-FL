@@ -1,0 +1,77 @@
+---
+model_and_data: TINY_RN18
+train_structure: TINY_RN18
+alpha: 0.0
+sparsity: 0.0
+mask: 0.0
+
+model:
+  _target_: project.models.resnet18.ResNet18
+  num_classes: 200
+
+# Client fit config
+fit_config:
+  net_config: {}
+  dataloader_config:
+    batch_size: 16
+  run_config:
+    epochs: 1
+    learning_rate: 0.5
+    final_learning_rate: 0.01
+    warmup_rounds: 0
+    warmup: 0
+    tot_rounds: ${fed.num_rounds}
+    ggmp_lambda: 2.0
+    fedmcr_beta: 0.05
+    initial_sparsity: 0.50
+    target_sparsity: 0.95
+  extra:
+    window_training: false
+    in_out_eval: false
+    mask: false
+    noise: 0
+
+# Client eval config
+eval_config:
+  net_config: {}
+  dataloader_config:
+    batch_size: 256
+  run_config: {}
+  extra:
+    window_training: false
+    mask: false
+
+# Federated test config
+fed_test_config:
+  net_config: {}
+  dataloader_config:
+    batch_size: 256
+  run_config: {}
+  extra: {}
+
+# Initial parameter generation
+net_config_initial_parameters: {}
+
+# Keep this aligned with your CIFAR confirmed version:
+# sparsity does NOT belong here
+fit_metrics:
+  - train_loss
+  - train_accuracy
+  - learning_rate
+  - client_train_time
+  - download_size_mb
+  - upload_size_mb
+  - mask_iou
+  - mask_flip_rate
+  - pruned_ratio
+  - effective_regrowth_ratio
+  - regrowth_ratio
+  - regrowth_utilization
+  - fedmcr_reg_loss
+  - fedmcr_beta
+
+# Keep sparsity here, same as CIFAR's actual W&B collection path.
+# Do NOT add exponent unless Tiny's test function also returns it.
+evaluate_metrics:
+  - test_accuracy
+  - sparsity

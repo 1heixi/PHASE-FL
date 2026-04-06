@@ -1,0 +1,38 @@
+defaults:
+  - _self_
+  - task: tiny_imagenet_resnet18
+  - fed: tiny_imagenet_resnet18
+  - strategy: fedavg
+  - dataset: tiny_imagenet_lda
+
+reuse_output_dir: null
+working_dir: null
+
+to_save_once: [history, yaml, log]
+to_save_per_round: [parameters]
+save_frequency: 100
+
+to_clean_once: [history, parameters, yaml, log]
+
+use_wandb: false
+
+test_clients:
+  all: false
+  one: true
+
+wandb:
+  setup:
+    project: tiny_imagenet_test
+    tags:
+      - strategy_${strategy.name}
+      - seed_${fed.seed}
+      - partitioning_lda_${dataset.lda_alpha}_${dataset.num_clients}
+    entity: null
+    mode: online
+    name: ${task.model_and_data}_${task.train_structure}-a${task.alpha}-s${task.sparsity}-tinyimg-${strategy.name}
+
+ray_address: null
+ray_redis_password: null
+ray_node_ip_address: null
+
+file_limit: null

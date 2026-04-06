@@ -1,0 +1,94 @@
+---
+model_and_data: CIFAR_RN18
+train_structure: CIFAR_RN18_FIX_PRUNE
+
+alpha: 1.0
+sparsity: 0.98
+mask: 0.0
+
+fit_config:
+  net_config: {}
+  dataloader_config:
+    batch_size: 32
+  run_config:
+    epochs: 1
+    learning_rate: 0.5
+    final_learning_rate: 0.01
+    warmup_rounds: 0
+    warmup: 0
+    tot_rounds: 1000
+
+    # current trunk
+    ggmp_lambda: 0.0
+    fedmcr_beta: 0.0
+    initial_sparsity: 0.30
+    target_sparsity: 0.98
+    ramp_end: 0.56
+
+    # second innovation: prunable-only support-aware aggregation
+    support_agg_activate_round: 700
+    support_ema_beta: 0.90
+    support_gamma: 2.0
+    support_alpha_min: 0.05
+    support_update_interval: 1
+
+    # third innovation: boundary-band hysteresis pruning
+    hysteresis_enable: false
+    hysteresis_activate_round: 560
+    hysteresis_band_ratio: 0.05
+    hysteresis_keep_bias: 0.75
+    hysteresis_grow_penalty: 0.75
+    hysteresis_min_threshold: 1.0e-12
+
+  extra: {window_training: false, in_out_eval: false, mask: false, noise: 0}
+
+eval_config:
+  net_config: {}
+  dataloader_config:
+    batch_size: 256
+  run_config: {}
+  extra: {window_training: false, mask: false}
+
+fed_test_config:
+  net_config: {}
+  dataloader_config:
+    batch_size: 256
+  run_config: {}
+  extra: {}
+
+net_config_initial_parameters: {}
+
+fit_metrics:
+  - train_loss
+  - train_accuracy
+  - learning_rate
+  - client_train_time
+  - download_size_mb
+  - upload_size_mb
+  - mask_iou
+  - mask_flip_rate
+  - pruned_ratio
+  - effective_regrowth_ratio
+  - regrowth_ratio
+  - regrowth_utilization
+  - fedmcr_reg_loss
+  - fedmcr_beta
+  - server_aggregation_time
+  - support_agg_active
+  - support_mean
+  - support_ema_mean
+  - support_alpha_mean
+  - support_nonzero_fraction
+  - support_prunable_fraction
+  - support_num_prunable_tensors
+  - realized_sparsity
+  - hysteresis_active
+  - hysteresis_threshold
+  - hysteresis_band
+  - hysteresis_boundary_fraction
+  - hysteresis_prev_keep_boundary_fraction
+
+evaluate_metrics:
+  - test_accuracy
+  - sparsity
+  - exponent

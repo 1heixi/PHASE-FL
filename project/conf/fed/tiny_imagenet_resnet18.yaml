@@ -1,0 +1,13 @@
+---
+num_rounds: 600
+num_total_clients: 100
+num_clients_per_round: 10
+num_evaluate_clients_per_round: 10
+enable_resampling: false
+cpus_per_client: 1
+gpus_per_client: 0.2
+seed: 9421
+load_saved_parameters: true
+parameters_round: null
+parameters_folder: null
+use_results_dir: true

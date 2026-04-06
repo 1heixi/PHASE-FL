@@ -1,0 +1,14 @@
+name: tiny_imagenet_lda
+
+dataset_dir: ./data
+partition_dir: ./data/tiny-imagenet-200/lda_${dataset.lda_alpha}_${dataset.num_clients}
+num_clients: 100
+num_classes: 200
+val_ratio: 0.0
+seed: 42
+
+iid: false
+power_law: false
+lda: true
+lda_alpha: 0.1
+balance: false
